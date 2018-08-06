@@ -338,7 +338,7 @@ namespace PACMAN
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("You Win.\n\n");
             Console.WriteLine("Press 'F' to play again or 'Q' to quit");
-
+            
             // Ask if playing again
             aPlayAgain = PromptPlayAgain();
          }
@@ -354,6 +354,7 @@ namespace PACMAN
       public static void Move() => Console.Beep(1250, 10);
       public static void Eat() => Console.Beep(8000, 10);
       public static void HitWall() => Console.Beep(37, 10);
+     
    }
    public enum Directions
    {
