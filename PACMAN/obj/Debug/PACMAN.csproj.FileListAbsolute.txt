@@ -1,0 +1,14 @@
+c:\users\woitulewicz\documents\visual studio 2017\Projects\PACMAN\PACMAN\bin\Debug\PACMAN.exe.config
+c:\users\woitulewicz\documents\visual studio 2017\Projects\PACMAN\PACMAN\bin\Debug\PACMAN.exe
+c:\users\woitulewicz\documents\visual studio 2017\Projects\PACMAN\PACMAN\bin\Debug\PACMAN.pdb
+c:\users\woitulewicz\documents\visual studio 2017\Projects\PACMAN\PACMAN\obj\Debug\PACMAN.csproj.CoreCompileInputs.cache
+c:\users\woitulewicz\documents\visual studio 2017\Projects\PACMAN\PACMAN\obj\Debug\PACMAN.exe
+c:\users\woitulewicz\documents\visual studio 2017\Projects\PACMAN\PACMAN\obj\Debug\PACMAN.pdb
+C:\Users\woitulewicz\documents\visual studio 2017\Projects\PACMAN\PACMAN\obj\Debug\PACMAN.csprojAssemblyReference.cache
+\\zs306\development\Devt\Katas\2_Pacman\Adam & Perrin\PACMAN\PACMAN\bin\Debug\PACMAN.exe.config
+\\zs306\development\Devt\Katas\2_Pacman\Adam & Perrin\PACMAN\PACMAN\bin\Debug\PACMAN.exe
+\\zs306\development\Devt\Katas\2_Pacman\Adam & Perrin\PACMAN\PACMAN\bin\Debug\PACMAN.pdb
+\\zs306\development\Devt\Katas\2_Pacman\Adam & Perrin\PACMAN\PACMAN\obj\Debug\PACMAN.csproj.CoreCompileInputs.cache
+\\zs306\development\Devt\Katas\2_Pacman\Adam & Perrin\PACMAN\PACMAN\obj\Debug\PACMAN.exe
+\\zs306\development\Devt\Katas\2_Pacman\Adam & Perrin\PACMAN\PACMAN\obj\Debug\PACMAN.pdb
+\\zs306\development\Devt\Katas\2_Pacman\Adam & Perrin\PACMAN\PACMAN\obj\Debug\PACMAN.csprojResolveAssemblyReference.cache
