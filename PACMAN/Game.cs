@@ -338,7 +338,7 @@ namespace PACMAN
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("You Win.\n\n");
             Console.WriteLine("Press 'F' to play again or 'Q' to quit");
-            Console.WriteLine("hello");
+            
             // Ask if playing again
             aPlayAgain = PromptPlayAgain();
          }
