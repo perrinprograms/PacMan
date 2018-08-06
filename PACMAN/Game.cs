@@ -304,10 +304,10 @@ namespace PACMAN
             PromptChooseLevel();
 
             // Initialize Pacman at position (1, 1)
-            itsGhost = new Ghost(new Point(1, 5));
             itsPacman = new Pacman(new Point(1, 1));
             
-            
+            // Initialize a Ghost at position (1, 5)
+            itsGhost = new Ghost(new Point(1, 5));
 
             // Draw the map
             itsMap.PrintMap();
