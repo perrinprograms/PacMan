@@ -6,6 +6,10 @@ using System.Media;
 
 namespace PACMAN
 {
+   public interface IEdible
+   {
+      void GetEaten();
+   }
    public abstract class Entity
    {
       protected abstract char Graphic { get; }
@@ -28,8 +32,35 @@ namespace PACMAN
       {
          Location = theLocation;
       }
+      protected Entity FindNeighbor(Directions theDirection)
+      {
+         switch (theDirection)
+         {
+            case Directions.UP:
+               return LevelMap.CurrentMap.MapGrid[Location.X, Location.Y - 1];
+            case Directions.DOWN:
+               return LevelMap.CurrentMap.MapGrid[Location.X, Location.Y + 1];
+            case Directions.LEFT:
+               return LevelMap.CurrentMap.MapGrid[Location.X - 1, Location.Y];
+            case Directions.RIGHT:
+            default:
+               return LevelMap.CurrentMap.MapGrid[Location.X + 1, Location.Y];
+         }
+      }
    }
-   public class Dot : Entity
+   public class EmptySpot : Entity
+   {
+      protected override char Graphic => ' ';
+      public EmptySpot(Point theLocation) : base(theLocation) { }
+   }
+   public class Wall : Entity
+   {
+      protected override char Graphic => '+';
+      protected override ConsoleColor Color => ConsoleColor.DarkBlue;
+      public override bool IsSolid => true;
+      public Wall(Point theLocation) : base(theLocation) { }
+   }
+   public class Dot : Entity, IEdible
    {
       public static int NumDots = 0;
       protected override char Graphic => '.';
@@ -40,32 +71,67 @@ namespace PACMAN
       }
       public void GetEaten()
       {
+         LevelMap.CurrentMap.MapGrid[Location.X, Location.Y] = new EmptySpot(Location);
          NumDots--;
       }
    }
-   public class Wall : Entity
+   public class BigDot : Entity, IEdible
    {
-      protected override char Graphic => '+';
-      protected override ConsoleColor Color => ConsoleColor.DarkBlue;
-      public override bool IsSolid => true;
-      public Wall(Point theLocation) : base(theLocation) { }
+      protected override char Graphic => 'o';
+      protected override ConsoleColor Color => ConsoleColor.Green;
+      public BigDot(Point theLocation) : base(theLocation) { }
+      public void GetEaten()
+      {
+         LevelMap.CurrentMap.MapGrid[Location.X, Location.Y] = new EmptySpot(Location);
+      }
    }
-   public class EmptySpot : Entity
+   public class Ghost : Entity, IEdible
    {
-      protected override char Graphic => ' ';
-      public EmptySpot(Point theLocation) : base(theLocation) { }
-   }
-   public class Ghost : Entity
-   {
+      public bool Alive { get; set; } = true;
+      public static List<Ghost> Ghosts = new List<Ghost>();
+      public Entity itsStandingOn;
       protected override char Graphic => '~';
-      protected override ConsoleColor Color => ConsoleColor.White;
-      public override bool IsSolid => true; 
-      public Ghost(Point theStartPoint) : base(theStartPoint) { }
-
+      protected override ConsoleColor Color => ConsoleColor.Red;
+      public Ghost(Point theStartPoint) : base(theStartPoint)
+      {
+         itsStandingOn = LevelMap.CurrentMap.MapGrid[Location.X, Location.Y];
+      }
+      public void GetEaten()
+      {
+         LevelMap.CurrentMap.MapGrid[Location.X, Location.Y] = itsStandingOn;
+         LevelMap.CurrentMap.MapGrid[Location.X, Location.Y].Draw();
+         Ghosts.Remove(this);
+      }
+      public void Move()
+      {
+         // Find a random direction to move in
+         Directions aDirection = (Directions)new Random().Next(0, 4);
+         // Find the Entity at the point the Ghost is trying to move into
+         Entity aNextSpot = FindNeighbor(aDirection);
+         // Don't move into a wall
+         if (aNextSpot is Wall)
+            return;
+         // Replace the spot the Ghost was standing in with whatever was on the spot before the Ghost entered it
+         if (itsStandingOn != null && !(itsStandingOn is Ghost))
+         {
+            LevelMap.CurrentMap.MapGrid[Location.X, Location.Y] = itsStandingOn;
+            itsStandingOn.Draw();
+         }
+         if (!(itsStandingOn is Ghost))
+            itsStandingOn = aNextSpot;
+         
+         // Moves the Ghost to the next spot
+         Location = aNextSpot.Location;
+         LevelMap.CurrentMap.MapGrid[Location.X, Location.Y] = this;
+         // Draw the Ghost on its new spot
+         Draw();
+      }
    }
    public class Pacman : Entity
    {
+      public bool Alive { get; set; } = true;
       private Directions itsDirection = Directions.RIGHT;
+      private int itsPowerUpCounter = 0;
       /// <summary>
       /// Pacman's current graphic to be printed on the screen
       /// </summary>
@@ -87,16 +153,37 @@ namespace PACMAN
             }
          }
       }
-      protected override ConsoleColor Color => ConsoleColor.Yellow;
+      protected override ConsoleColor Color => itsPowerUpCounter > 0 ? ConsoleColor.Blue : ConsoleColor.Yellow;
       /// <summary>
       /// Constructor
       /// </summary>
       /// <param name="theStartPoint">Starting location</param>
       public Pacman(Point theStartPoint) : base(theStartPoint) { }
+      public void PlayerInput()
+      {
+         switch (Console.ReadKey(true).Key)
+         {
+            case ConsoleKey.UpArrow:
+            case ConsoleKey.W:
+               Move(Directions.UP);
+               break;
+            case ConsoleKey.DownArrow:
+            case ConsoleKey.S:
+               Move(Directions.DOWN);
+               break;
+            case ConsoleKey.LeftArrow:
+            case ConsoleKey.A:
+               Move(Directions.LEFT);
+               break;
+            case ConsoleKey.RightArrow:
+            case ConsoleKey.D:
+               Move(Directions.RIGHT);
+               break;
+         }
+      }
       /// <summary>
       /// Moves Pacman in a direction if possible.
       /// </summary>
-      /// <param name="theMap">Map reference</param>
       /// <param name="theDirection">The direction to move in</param>
       public void Move(Directions theDirection)
       {
@@ -122,19 +209,15 @@ namespace PACMAN
             default:
                return;
          }
-
-         // If Pacman trying into a dot or blank space
+         
+         // If Pacman trying to move into a dot or blank space
          if (!aNextSpot.IsSolid)
          {
-            // If moving into a dot, eat it
-            if (aNextSpot is Dot aDot)
-            {
-               Eat(aDot);
-            }
-            else
-            {
-               Sounds.Move();
-            }
+            // If Pacman runs into something he can eat
+            if (aNextSpot is IEdible anEdibleEntity)
+               TryToEat(anEdibleEntity);
+
+            Sounds.Move();
 
             // Draw the spot that Pacman moved out of
             LevelMap.CurrentMap.MapGrid[Location.X, Location.Y].Draw();
@@ -147,36 +230,43 @@ namespace PACMAN
             Sounds.HitWall();
          }
 
+         if (itsPowerUpCounter > 0)
+            itsPowerUpCounter--;
+
          // Draw Pacman at his new location
          Draw();
       }
-      public void Eat(Dot theDot)
+      /// <summary>
+      /// Check to see whether Pacman can currently eat the entity he has collided with, and eat it if he can
+      /// </summary>
+      public void TryToEat(IEdible theEntity)
       {
-         LevelMap.CurrentMap.MapGrid[theDot.Location.X, theDot.Location.Y] = new EmptySpot(theDot.Location);
-         theDot.GetEaten();
-         Sounds.Eat();
-      }
-      public void PlayerInput()
-      {
-         switch (Console.ReadKey(true).Key)
+         if (theEntity is Ghost aGhost)
          {
-            case ConsoleKey.UpArrow:
-            case ConsoleKey.W:
-               Move(Directions.UP);
-               break;
-            case ConsoleKey.DownArrow:
-            case ConsoleKey.S:
-               Move(Directions.DOWN);
-               break;
-            case ConsoleKey.LeftArrow:
-            case ConsoleKey.A:
-               Move(Directions.LEFT);
-               break;
-            case ConsoleKey.RightArrow:
-            case ConsoleKey.D:
-               Move(Directions.RIGHT);
-               break;
+            if (itsPowerUpCounter > 0)
+            {
+               Eat(aGhost);
+               if (aGhost.itsStandingOn is IEdible anEntity)
+                  Eat(anEntity);
+            }
+            else
+            {
+               Alive = false;
+            }
          }
+         else
+            Eat(theEntity);
+      }
+      /// <summary>
+      /// Make Pacman eat something and give him any relevant effects
+      /// </summary>
+      public void Eat(IEdible theEntity)
+      {
+         theEntity.GetEaten();
+         Sounds.Eat();
+
+         if (theEntity is BigDot)
+            itsPowerUpCounter += 14;
       }
    }
    public class LevelMap
@@ -233,6 +323,9 @@ namespace PACMAN
                return new Wall(theLocation);
             case '.':
                return new Dot(theLocation);
+            case 'o':
+               return new BigDot(theLocation);
+            case '_':
             default:
                return new EmptySpot(theLocation);
          }
@@ -242,8 +335,6 @@ namespace PACMAN
    {
       public Pacman itsPacman;
       public LevelMap itsMap;
-      public Ghost itsGhost; 
-
       /// <summary>
       /// Asks which level to play
       /// </summary>
@@ -278,6 +369,7 @@ namespace PACMAN
       /// </summary>
       public bool PromptPlayAgain()
       {
+         Console.WriteLine("Press 'F' to play again or 'Q' to quit");
          while (true)
          {
             switch (Console.ReadKey(true).Key)
@@ -305,9 +397,9 @@ namespace PACMAN
 
             // Initialize Pacman at position (1, 1)
             itsPacman = new Pacman(new Point(1, 1));
-            
+
             // Initialize a Ghost at position (1, 5)
-            itsGhost = new Ghost(new Point(1, 5));
+            Ghost.Ghosts = new List<Ghost>() { new Ghost(new Point(1, 5)) };
 
             // Draw the map
             itsMap.PrintMap();
@@ -315,7 +407,9 @@ namespace PACMAN
             // Draw Pacman onto the map
             itsPacman.Draw();
 
-
+            // Draw the ghost onto the map
+            foreach (Ghost aGhost in Ghost.Ghosts)
+               aGhost.Draw();
 
             // Play the starting sound
             Sounds.Intro();
@@ -326,9 +420,24 @@ namespace PACMAN
             bool theGameOver = false;
             while (!theGameOver)
             {
+               // Move Pacman
                itsPacman.PlayerInput();
 
+               // Move Ghosts and see if any touch Pacman
+               for(int i = Ghost.Ghosts.Count-1; i >= 0; i--)
+               {
+                  Ghost.Ghosts[i].Move();
+                  if (Ghost.Ghosts[i].Location == itsPacman.Location)
+                     itsPacman.TryToEat(Ghost.Ghosts[i]);
+               }
+
+               // If all of the dots are eaten, end the game
                if (Dot.NumDots <= 0)
+               {
+                  Console.Clear();
+                  theGameOver = true;
+               }
+               else if (!itsPacman.Alive)
                {
                   Console.Clear();
                   theGameOver = true;
@@ -336,9 +445,16 @@ namespace PACMAN
             }
 
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("You Win.\n\n");
-            Console.WriteLine("Press 'F' to play again or 'Q' to quit");
-            
+
+            if (itsPacman.Alive)
+            {
+               Console.WriteLine("You Win.\n\n");
+            }
+            else
+            {
+               Console.WriteLine("You Lose.\n\n");
+            }
+
             // Ask if playing again
             aPlayAgain = PromptPlayAgain();
          }
@@ -349,12 +465,11 @@ namespace PACMAN
       public static void Intro()
       {
          SoundPlayer simpleSound = new SoundPlayer(@"P:\Devt\Katas\2_Pacman\PacManStart.wav");
-         simpleSound.Play();
+         //simpleSound.Play();
       }
       public static void Move() => Console.Beep(1250, 10);
       public static void Eat() => Console.Beep(8000, 10);
       public static void HitWall() => Console.Beep(37, 10);
-     
    }
    public enum Directions
    {
